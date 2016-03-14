@@ -48,6 +48,22 @@
     var defaultMsg = {};
 
     /**
+     * collect elements for focus
+     * @type {Object}
+     */
+    this.focusedElements = {};
+
+    /**
+     * clear focused elements
+     * used in case of dynamic change of directives
+     * @returns {*}
+     */
+    this.resetFocusedElements = function(obj) {
+      for (var member in _this.focusedElements) delete _this.focusedElements[member];
+      return _this;
+    };
+
+    /**
      * Allow user to set a custom Expression, do remember set the default message using setDefaultMsg
      * @param obj
      * @returns {*}
@@ -95,7 +111,7 @@
     };
 
     /**
-     * Get the valid method     
+     * Get the valid method
      * @returns {*}
      */
     this.getValidMethod = function() {
@@ -271,7 +287,7 @@
 
     /**
      * Add Message Element in config phase
-     * When you need custom your messageElement 
+     * When you need custom your messageElement
      * NODE: this funtion & and `message-id` attribute, have similar purpose.
      * This function will help you add your `messageElement` automatically instead of pre-defined.
      * @param element
@@ -282,7 +298,7 @@
 
     /**
      * Add Message Element in config phase
-     * When you need custom your messageElement 
+     * When you need custom your messageElement
      * NODE: this funtion & and `message-id` attribute, have similar purpose.
      * This function will help you add your `messageElement` automatically instead of pre-defined.
      * @param element
@@ -317,7 +333,9 @@
         resetCallback: this.resetCallback,
         reset: this.reset,
         addMsgElement: this.addMsgElement,
-        getMsgElement: this.getMsgElement
+        getMsgElement: this.getMsgElement,
+        focusedElements: this.focusedElements,
+        resetFocusedElements: this.resetFocusedElements
       };
     }];
   }
@@ -492,14 +510,6 @@
       }
       return false;
     };
-
-    /**
-     * collect elements for focus
-     * @type {Object}
-     ***private variable
-     */
-    var focusElements = {};
-
 
     /**
      * Check Validation with Function or RegExp
@@ -697,17 +707,17 @@
 
           var setFocus = function(isValid) {
             if (isValid) {
-              delete focusElements[index];
+              delete $validationProvider.focusedElements[index];
             } else {
-              focusElements[index] = element[0];
+              $validationProvider.focusedElements[index] = element[0];
 
               $timeout(function() {
-                focusElements[Math.min.apply(null, Object.keys(focusElements))].focus();
+                $validationProvider.focusedElements[Math.min.apply(null, Object.keys($validationProvider.focusedElements))].focus();
               }, 0);
             }
           };
 
-          if (isValid.constructor === Object) isValid.then(setFocus);
+          if (isValid.constructor.name === 'Promise') isValid.then(setFocus);
           else setFocus(isValid);
         });
 
@@ -736,23 +746,13 @@
          * Validate watch method
          * This is the default method
          */
-        scope.$watch(function() {
-          return scope.$eval(ngModel);
-        }, function(value) {
+        scope.$watch(ngModel, function(newValue, oldValue) {
           /**
-           * dirty, pristine, viewValue control here
+           * perform validation if it is not initial state
            */
-          if (ctrl.$pristine && ctrl.$viewValue) {
-            // has value when initial
-            ctrl.$setViewValue(ctrl.$viewValue);
-          } else if (ctrl.$pristine) {
-            // Don't validate form when the input is clean(pristine)
-            if (messageId || validationGroup) angular.element(document.querySelector('#' + (messageId || validationGroup))).html('');
-            else $validationProvider.getMsgElement(element).html('');
-            return;
-          }
-          checkValidation(scope, element, attrs, ctrl, validation, value);
-        });
+          if (newValue === oldValue) return;
+          checkValidation(scope, element, attrs, ctrl, validation, newValue);
+        }, true);
 
         $timeout(function() {
           /**

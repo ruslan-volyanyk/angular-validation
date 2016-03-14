@@ -42,6 +42,22 @@
     var defaultMsg = {};
 
     /**
+     * collect elements for focus
+     * @type {Object}
+     */
+    this.focusedElements = {};
+
+    /**
+     * clear focused elements
+     * used in case of dynamic change of directives
+     * @returns {*}
+     */
+    this.resetFocusedElements = function(obj) {
+      for (var member in _this.focusedElements) delete _this.focusedElements[member];
+      return _this;
+    };
+
+    /**
      * Allow user to set a custom Expression, do remember set the default message using setDefaultMsg
      * @param obj
      * @returns {*}
@@ -89,7 +105,7 @@
     };
 
     /**
-     * Get the valid method     
+     * Get the valid method
      * @returns {*}
      */
     this.getValidMethod = function() {
@@ -265,7 +281,7 @@
 
     /**
      * Add Message Element in config phase
-     * When you need custom your messageElement 
+     * When you need custom your messageElement
      * NODE: this funtion & and `message-id` attribute, have similar purpose.
      * This function will help you add your `messageElement` automatically instead of pre-defined.
      * @param element
@@ -276,7 +292,7 @@
 
     /**
      * Add Message Element in config phase
-     * When you need custom your messageElement 
+     * When you need custom your messageElement
      * NODE: this funtion & and `message-id` attribute, have similar purpose.
      * This function will help you add your `messageElement` automatically instead of pre-defined.
      * @param element
@@ -311,7 +327,9 @@
         resetCallback: this.resetCallback,
         reset: this.reset,
         addMsgElement: this.addMsgElement,
-        getMsgElement: this.getMsgElement
+        getMsgElement: this.getMsgElement,
+        focusedElements: this.focusedElements,
+        resetFocusedElements: this.resetFocusedElements
       };
     }];
   }

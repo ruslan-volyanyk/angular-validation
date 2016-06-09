@@ -182,12 +182,22 @@
       return !!(form && form.$valid);
     };
 
+    this.checkFormAttributesValid = function(form, elements) {
+      isInvalid = false
+      for (var i in form) {
+        if (i[0] !== '$' && $.inArray(i, elements) !== -1) {
+          if (form[i].$invalid) { isInvalid = true }
+        }
+      }
+      return !isInvalid
+    };
+
     /**
      * Validate the form when click submit, when `validMethod = submit`
      * @param form
      * @returns {promise|*}
      */
-    this.validate = function(form) {
+    this.validate = function(form, silent) {
       var deferred = $q.defer();
       var idx = 0;
 
@@ -206,7 +216,9 @@
       } else {
         for (var i in form) { // whole scope
           if (i[0] !== '$' && form[i].hasOwnProperty('$dirty')) {
-            $scope.$broadcast(i + 'submit-' + form[i].validationId, idx++);
+            broadcast_line = i + 'submit-' + form[i].validationId
+            if (silent) { broadcast_line += silent }
+            $scope.$broadcast(broadcast_line, idx++);
           }
         }
       }
@@ -321,6 +333,7 @@
         showSuccessMessage: this.showSuccessMessage,
         showErrorMessage: this.showErrorMessage,
         checkValid: this.checkValid,
+        checkFormAttributesValid: this.checkFormAttributesValid,
         validate: this.validate,
         validCallback: this.validCallback,
         invalidCallback: this.invalidCallback,

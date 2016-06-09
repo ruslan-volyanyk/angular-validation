@@ -337,7 +337,7 @@
         scope.$on(ctrl.$name + 'submit-' + uid + true, function(event, index) {
           var value = ctrl.$viewValue;
           var isValid = false;
-          var silent = true
+          var silent = true;
 
           isValid = checkValidation(scope, element, attrs, ctrl, validation, value, silent);
 

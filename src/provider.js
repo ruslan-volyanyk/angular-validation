@@ -183,13 +183,15 @@
     };
 
     this.checkFormAttributesValid = function(form, elements) {
-      isInvalid = false
+      isInvalid = false;
       for (var i in form) {
         if (i[0] !== '$' && $.inArray(i, elements) !== -1) {
-          if (form[i].$invalid) { isInvalid = true }
+          if (form[i].$invalid) {
+            isInvalid = true;
+          }
         }
       }
-      return !isInvalid
+      return !isInvalid;
     };
 
     /**
@@ -216,8 +218,10 @@
       } else {
         for (var i in form) { // whole scope
           if (i[0] !== '$' && form[i].hasOwnProperty('$dirty')) {
-            broadcast_line = i + 'submit-' + form[i].validationId
-            if (silent) { broadcast_line += silent }
+            broadcast_line = i + 'submit-' + form[i].validationId;
+            if (silent) {
+              broadcast_line += silent;
+            }
             $scope.$broadcast(broadcast_line, idx++);
           }
         }

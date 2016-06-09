@@ -188,12 +188,24 @@
       return !!(form && form.$valid);
     };
 
+    this.checkFormAttributesValid = function(form, elements) {
+      isInvalid = false;
+      for (var i in form) {
+        if (i[0] !== '$' && $.inArray(i, elements) !== -1) {
+          if (form[i].$invalid) {
+            isInvalid = true;
+          }
+        }
+      }
+      return !isInvalid;
+    };
+
     /**
      * Validate the form when click submit, when `validMethod = submit`
      * @param form
      * @returns {promise|*}
      */
-    this.validate = function(form) {
+    this.validate = function(form, silent) {
       var deferred = $q.defer();
       var idx = 0;
 
@@ -212,7 +224,11 @@
       } else {
         for (var i in form) { // whole scope
           if (i[0] !== '$' && form[i].hasOwnProperty('$dirty')) {
-            $scope.$broadcast(i + 'submit-' + form[i].validationId, idx++);
+            broadcast_line = i + 'submit-' + form[i].validationId;
+            if (silent) {
+              broadcast_line += silent;
+            }
+            $scope.$broadcast(broadcast_line, idx++);
           }
         }
       }
@@ -327,6 +343,7 @@
         showSuccessMessage: this.showSuccessMessage,
         showErrorMessage: this.showErrorMessage,
         checkValid: this.checkValid,
+        checkFormAttributesValid: this.checkFormAttributesValid,
         validate: this.validate,
         validCallback: this.validCallback,
         invalidCallback: this.invalidCallback,
@@ -521,7 +538,7 @@
      * @param value
      * @returns {}
      */
-    var checkValidation = function(scope, element, attrs, ctrl, validation, value) {
+    var checkValidation = function(scope, element, attrs, ctrl, validation, value, silent) {
       var validators = validation.slice(0);
       var validatorExpr = validators[0].trim();
       var paramIndex = validatorExpr.indexOf('=');
@@ -534,15 +551,23 @@
       var validationGroup = attrs.validationGroup;
       var valid = {
         success: function() {
-          validFunc(element, attrs[successMessage], validator, scope, ctrl, attrs);
+          if (silent) {
+            ctrl.$setValidity(ctrl.$name, true);
+          } else {
+            validFunc(element, attrs[successMessage], validator, scope, ctrl, attrs);
+          }
           if (leftValidation.length) {
-            return checkValidation(scope, element, attrs, ctrl, leftValidation, value);
+            return checkValidation(scope, element, attrs, ctrl, leftValidation, value, silent);
           } else {
             return true;
           }
         },
         error: function() {
-          return invalidFunc(element, attrs[errorMessage], validator, scope, ctrl, attrs);
+          if (silent) {
+            return ctrl.$setValidity(ctrl.$name, false);
+          } else {
+            return invalidFunc(element, attrs[errorMessage], validator, scope, ctrl, attrs);
+          }
         }
       };
 
@@ -720,6 +745,57 @@
           if (isValid.constructor.name === 'Promise') isValid.then(setFocus);
           else setFocus(isValid);
         });
+
+
+
+
+        scope.$on(ctrl.$name + 'submit-' + uid + true, function(event, index) {
+          var value = ctrl.$viewValue;
+          var isValid = false;
+          var silent = true;
+
+          isValid = checkValidation(scope, element, attrs, ctrl, validation, value, silent);
+
+          if (validMethod === 'submit') {
+            // clear previous scope.$watch
+            watch();
+            watch = scope.$watch(function() {
+              return scope.$eval(ngModel);
+            }, function(value, oldValue) {
+              // don't watch when init
+              if (value === oldValue) {
+                return;
+              }
+
+              // scope.$watch will translate '' to undefined
+              // undefined/null will pass the required submit /^.+/
+              // cause some error in this validation
+              if (value === undefined || value === null) {
+                value = '';
+              }
+
+              isValid = checkValidation(scope, element, attrs, ctrl, validation, value);
+            });
+          }
+
+          var setFocus = function(isValid) {
+            if (isValid) {
+              delete $validationProvider.focusedElements[index];
+            } else {
+              $validationProvider.focusedElements[index] = element[0];
+
+              $timeout(function() {
+                $validationProvider.focusedElements[Math.min.apply(null, Object.keys($validationProvider.focusedElements))].focus();
+              }, 0);
+            }
+          };
+
+          if (isValid.constructor.name === 'Promise') isValid.then(setFocus);
+          else setFocus(isValid);
+        });
+
+
+
 
         /**
          * Validate blur method
